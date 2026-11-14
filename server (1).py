@@ -68,14 +68,15 @@ async def godmod3_models() -> str:
 async def godmod3_chat(prompt: str, model: str = "ultraplinian/fast") -> str:
     """Ask GodMod3 to respond. May consume OpenRouter credits."""
     base, headers = backend()
+    payload = {"model": model, "messages": [{"role": "user", "content": prompt}],
+               "stream": False, "contribute_to_dataset": False}
     or_key = os.environ.get("OPENROUTER_API_KEY", "")
-    if not or_key:
-        raise ValueError("OPENROUTER_API_KEY is not configured")
+    if or_key:
+        payload["openrouter_api_key"] = or_key
+    # Without an override, let the API use its own private provider credential.
     async with httpx.AsyncClient(timeout=120) as client:
         response = await client.post(base + "/v1/chat/completions", headers=headers,
-            json={"model": model, "messages": [{"role": "user", "content": prompt}],
-                  "openrouter_api_key": or_key,
-                  "stream": False, "contribute_to_dataset": False})
+            json=payload)
         response.raise_for_status()
         return json.dumps(response.json(), ensure_ascii=False)[:40000]
 
