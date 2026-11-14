@@ -1,26 +1,9 @@
-PATCH EXPERIMENTAL OAUTH PARA A PONTE MCP DO GODMOD3
+MCP SEM SENHA OU API KEY NO PLUGIN
 
-Arquivos para substituir na raiz do repo godmod3-chatgptt-mcp:
-- server.py
-- requirements.txt
+URL: https://godmod3-chatgptt-mcp-2.onrender.com/mcp
+Autenticação no ChatGPT: Nenhuma / None / No authentication
+Não preencher Client ID, Client Secret, senha ou API key.
 
-No Render (serviço Python godmod3-chatgptt-mcp-2), Environment:
-PUBLIC_URL=https://godmod3-chatgptt-mcp-2.onrender.com
-OAUTH_ADMIN_PASSWORD=<senha NOVA e longa de pelo menos 24 caracteres>
-GODMOD3_BASE_URL=https://godmod3-chatgptt-mcp-1.onrender.com
-GODMOD3_API_KEY=<chave equivalente a GODMODE_API_KEY na API>
-
-NÃO coloque nenhuma senha no GitHub público ou nesta conversa.
-
-Depois do deploy, verifique no navegador:
-https://godmod3-chatgptt-mcp-2.onrender.com/.well-known/oauth-protected-resource
-https://godmod3-chatgptt-mcp-2.onrender.com/.well-known/oauth-authorization-server
-https://godmod3-chatgptt-mcp-2.onrender.com/health
-
-Em ChatGPT, conecte o endpoint https://godmod3-chatgptt-mcp-2.onrender.com/mcp
-OAuth com Dynamic Client Registration; não use chave do GodMod3 como Client Secret.
-
-LIMITAÇÕES: demonstração single-user. Sessões e tokens em memória são perdidos
-quando o Render reinicia. Isso não é um servidor de identidade de produção.
-A conectividade com ChatGPT não foi confirmada. Recomenda-se provedor OAuth
-estabelecido (Auth0, Stytch etc.) para uso duradouro.
+Se a conexão antiga usa OAuth, altere para Nenhuma ou crie a conexão novamente.
+As chaves privadas entre a ponte e a API permanecem nas variáveis do Render.
+O comando atual python "server (1).py" continua válido.
