@@ -3,6 +3,9 @@ import functools
 import importlib.util
 import json
 import os
+import socket
+import subprocess
+import time
 from pathlib import Path
 import sys
 import unittest
@@ -14,6 +17,7 @@ from starlette.testclient import TestClient
 
 BASE = 'https://bridge.example.invalid'
 KEY = 'synthetic-private-backend-fixture'
+PROVIDER_KEY = 'synthetic-private-provider-fixture'
 
 
 class PublicMCPTests(unittest.TestCase):
@@ -22,6 +26,7 @@ class PublicMCPTests(unittest.TestCase):
             'PUBLIC_URL': BASE,
             'GODMOD3_BASE_URL': 'https://backend.example.invalid',
             'GODMOD3_API_KEY': KEY,
+            'OPENROUTER_API_KEY': PROVIDER_KEY,
         })
         self.environment.start()
         os.environ.pop('OAUTH_ADMIN_PASSWORD', None)
@@ -42,6 +47,38 @@ class PublicMCPTests(unittest.TestCase):
         return self.client.post('/mcp', json={
             'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params or {},
         }, headers={'Accept': 'application/json, text/event-stream', **(extra_headers or {})})
+
+    def test_start_command_opens_health_port(self):
+        with socket.socket() as probe:
+            probe.bind(('127.0.0.1', 0))
+            port = probe.getsockname()[1]
+        root = Path(__file__).resolve().parents[1]
+        process = subprocess.Popen(
+            [sys.executable, 'server (1).py'], cwd=root,
+            env={**os.environ, 'PORT': str(port)},
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        try:
+            with httpx.Client(timeout=0.5, trust_env=False) as client:
+                for _ in range(100):
+                    if process.poll() is not None:
+                        self.fail('Render start command exited before opening PORT')
+                    try:
+                        response = client.get(f'http://127.0.0.1:{port}/health')
+                        if response.status_code == 200:
+                            self.assertEqual(response.json()['auth'], 'none')
+                            return
+                    except httpx.HTTPError:
+                        pass
+                    time.sleep(0.05)
+            self.fail('Render start command did not open PORT')
+        finally:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
 
     def test_initialize_without_any_client_credential(self):
         response = self.rpc('initialize', {
@@ -92,6 +129,7 @@ class PublicMCPTests(unittest.TestCase):
             self.assertEqual(request.url.path, '/v1/chat/completions')
             body = json.loads(request.content)
             self.assertEqual(body['model'], 'fixture-model')
+            self.assertEqual(body['openrouter_api_key'], PROVIDER_KEY)
             self.assertFalse(body['stream'])
             self.assertFalse(body['contribute_to_dataset'])
             return httpx.Response(200, json={'choices': [{'message': {'content': 'OK'}}]})
@@ -105,6 +143,7 @@ class PublicMCPTests(unittest.TestCase):
                     self.assertEqual(response.status_code, 200)
                     self.assertFalse(response.json()['result'].get('isError', False))
                     self.assertNotIn(KEY, response.text)
+                    self.assertNotIn(PROVIDER_KEY, response.text)
         self.assertEqual(len(requests), 2)
 
 

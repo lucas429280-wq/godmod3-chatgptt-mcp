@@ -78,4 +78,10 @@ async def godmod3_chat(prompt: str, model: str = "ultraplinian/fast") -> str:
                   "stream": False, "contribute_to_dataset": False})
         response.raise_for_status()
         return json.dumps(response.json(), ensure_ascii=False)[:40000]
-    
+
+
+app = mcp.streamable_http_app()
+
+if __name__ == "__main__":
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "10000")), access_log=False)
