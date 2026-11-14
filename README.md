@@ -1,0 +1,1 @@
+# godmod3-chatgptt-mcp
