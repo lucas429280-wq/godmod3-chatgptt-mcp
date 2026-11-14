@@ -24,6 +24,7 @@ from urllib.parse import urlencode, urlparse
 import httpx
 import uvicorn
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.server.auth.provider import (
     AccessToken, AuthorizationCode, AuthorizationParams,
     OAuthAuthorizationServerProvider, RefreshToken, TokenError,
@@ -221,6 +222,12 @@ class RestartResistantOAuth(OAuthAuthorizationServerProvider[AuthorizationCode, 
 provider = RestartResistantOAuth()
 mcp = FastMCP(
     "godmod3-bridge",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=[urlparse(BASE_URL).netloc, urlparse(BASE_URL).hostname + ":443",
+                       "localhost:*", "127.0.0.1:*"],
+        allowed_origins=[BASE_URL, "https://chatgpt.com"],
+    ),
     auth_server_provider=provider,
     auth=AuthSettings(
         issuer_url=AnyHttpUrl(BASE_URL),
