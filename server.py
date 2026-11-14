@@ -67,7 +67,7 @@ class SingleUserOAuth(OAuthAuthorizationServerProvider[AuthorizationCode, Refres
         state_id = secrets.token_urlsafe(32)
         now = time.time()
         self.states = {k: v for k, v in self.states.items() if v[0] > now}
-        self.states[state_id] = (now + 300, client, params)
+        self.states[state_id] = (now + 1800, client, params)
         return BASE_URL + "/login?" + urlencode({"state": state_id})
 
     async def load_authorization_code(self, client: OAuthClientInformationFull, authorization_code: str) -> AuthorizationCode | None:
@@ -145,11 +145,14 @@ async def login_post(request: Request):
     password = form.get("password", "")
     if not isinstance(state_id, str) or not isinstance(password, str):
         raise HTTPException(400, "Invalid request")
-    st = provider.states.pop(state_id, None)  # one attempt per request
+    # Only consume OAuth state AFTER verifying the password.
+    # A wrong password must not invalidate the pending authorization.
+    st = provider.states.get(state_id)
     if st is None or st[0] <= time.time():
-        raise HTTPException(400, "Authorization expired")
+        raise HTTPException(400, "Authorization expired. Start a new connection in ChatGPT.")
     if not hmac.compare_digest(password, ADMIN_PASSWORD):
-        raise HTTPException(401, "Wrong password. Restart authorization from ChatGPT.")
+        raise HTTPException(401, "Wrong password. Go back and retry the same login form.")
+    provider.states.pop(state_id, None)
     _, client, params = st
     code = secrets.token_urlsafe(32)
     provider.codes[code] = AuthorizationCode(
