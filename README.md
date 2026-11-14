@@ -26,6 +26,10 @@ Serviço Python `godmod3-chatgptt-mcp-2`:
 - `GODMOD3_BASE_URL=https://godmod3-chatgptt-mcp-1.onrender.com`
 - `GODMOD3_API_KEY`: segredo privado equivalente ao `GODMODE_API_KEY` da API.
 
+A credencial `OPENROUTER_API_KEY` pode permanecer somente no serviço da API.
+Opcionalmente, configurar essa variável na ponte envia uma sobreposição privada
+à API. A ausência da variável na ponte não impede chamadas nem pede chave ao usuário.
+
 `OAUTH_ADMIN_PASSWORD` e `MCP_ACCESS_TOKEN` não são utilizados. Não há mais
 endpoints de login, registro de cliente ou emissão de tokens.
 

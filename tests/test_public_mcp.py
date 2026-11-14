@@ -80,6 +80,28 @@ class PublicMCPTests(unittest.TestCase):
                 process.kill()
                 process.wait()
 
+    def test_chat_uses_api_provider_key_when_bridge_override_is_absent(self):
+        os.environ.pop('OPENROUTER_API_KEY', None)
+        requests = []
+        def backend(request):
+            requests.append(request)
+            self.assertEqual(request.headers['Authorization'], 'Bearer ' + KEY)
+            body = json.loads(request.content)
+            self.assertNotIn('openrouter_api_key', body)
+            self.assertEqual(body['model'], 'fixture-model')
+            return httpx.Response(200, json={'choices': [{'message': {'content': 'OK'}}]})
+        original_client = httpx.AsyncClient
+        with patch.object(self.module.httpx, 'AsyncClient',
+                          functools.partial(original_client, transport=httpx.MockTransport(backend))):
+            response = self.rpc('tools/call', {
+                'name': 'godmod3_chat',
+                'arguments': {'prompt': 'Reply OK', 'model': 'fixture-model'},
+            })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()['result'].get('isError', False))
+        self.assertEqual(len(requests), 1)
+        self.assertNotIn(KEY, response.text)
+
     def test_initialize_without_any_client_credential(self):
         response = self.rpc('initialize', {
             'protocolVersion': '2025-03-26', 'capabilities': {},
